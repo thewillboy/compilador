@@ -34,29 +34,6 @@ from sly import Lexer
 from sly import Parser
 import os
 import sys
-'''
-# Função para verificar os arquivos no diretório
-# Verifica se existe ao menos 1 arquivo para
-# ser analisado
-def identificaArquivo():
-  arquivos = []
-  for arquivo in os.listdir("."):
-    if arquivo.endswith(".txt"):
-      arquivos.append(arquivo)
-  return arquivos
-
-# Verifica se existem arquivos para análise
-# ou se foram informados na chamada do programa
-if sys.argv[1:]:
-  arquivos = sys.argv[1:]
-else:
-  arquivos = identificaArquivo()
-
-for arquivo in arquivos:
-  arq = open(arquivo, 'r')
-  linhas = arq.readlines()
-'''
-
 
 class BasicLexer(Lexer):
   tokens = {
@@ -66,7 +43,6 @@ class BasicLexer(Lexer):
     SMALLER_OR_EQUAL, BIGGER, SMALLER, DELAY, LBRACE, RBRACE
   }
   ignore = '\t\b '
-  #http://www.java2s.com/Code/Python/String/EscapeCodesbtnar.htm
   literals = {'=', '+', '-', '/', '*', '(', ')', '{', '}', ',', ';'}
 
   # Define tokens
@@ -85,9 +61,7 @@ class BasicLexer(Lexer):
   END = r'END'
   LBRACE = r'{'
   RBRACE = r'}'
-  #FUN = r'FUN'
   TO = r'TO'
-  #ARROW = r'->'
   TYPE_INT = r'TYPE_INT'
   TYPE_REAL = r'TYPE_REAL'
   TYPE_STRING = r'TYPE_STRING'
@@ -103,14 +77,11 @@ class BasicLexer(Lexer):
 
   @_(r'\d+$')
   def INT(self, t):
-    #print(t.value)
-    #print("inteiro")
     t.value = int(t.value)
     return t
 
   @_(r'\d+.\d+')
   def REAL(self, t):
-    #print("real")
     t.value = float(t.value)
     return t
 
@@ -195,14 +166,6 @@ class BasicParser(Parser):
   def statement(self, p):
     return ('delay_call', p.DELAY, p.expr)
 
-  #@_('FUN NAME "(" ")" ARROW statement')
-  #def statement(self, p):
-  #  return ('fun_def', p.NAME, p.statement)
-
-  #@_('NAME "(" ")"')
-  #def statement(self, p):
-  #  return ('fun_call', p.NAME)
-
   @_('BOOL')
   def condition(self, p):
     return ('condition_bool', p.BOOL)
@@ -233,7 +196,7 @@ class BasicParser(Parser):
 
   @_('TYPE_INT var_assign')
   def statement(self, p):
-    return ('typeint_var_assign', p.TYPE_INT, p.var_assign)
+    return ('type_int_var_assign', p.TYPE_INT, p.var_assign)
 
   @_('TYPE_REAL var_assign')
   def statement(self, p):
@@ -250,10 +213,6 @@ class BasicParser(Parser):
   @_('NAME "=" REAL')
   def var_assign(self, p):
     return ('var_assign', p.NAME, p.REAL)
-
-  #@_('NAME "=" expr')
-  #def var_assign(self, p):
-  #  return ('var_assign', p.NAME, p.expr)
 
   @_('NAME "=" STRING')
   def var_assign(self, p):
@@ -279,10 +238,6 @@ class BasicParser(Parser):
   def expr(self, p):
     return ('div', p.expr0, p.expr1)
 
-  #@_('"-" expr %prec UMINUS')
-  #def expr(self, p):
-  #  return p.expr
-
   @_('PIN_TYPE')
   def expr(self, p):
     return ('pin_type', p.PIN_TYPE)
@@ -299,22 +254,26 @@ class BasicParser(Parser):
   def expr(self, p):
     return ('num', float(p.REAL))
 
-
-# Classe para capturar os erros léxicos e sintáticos do comilador
+erro = ""
+# Classe para capturar os erros léxicos e sintáticos do compilador
 class LogErro():
-
   STDERR = ''
 
   def new_stderr(old):
 
     def new(*args):
-      print('Intercepted: ' + repr(args))
-
+      #print('Intercepted: ' + repr(args))
+      global erro
+      erro = 'Erro identificado: ' + repr(args)
     return new
 
   sys.stderr.write = new_stderr(sys.stderr.write)
 
+# Apresentação inicial com instruções de uso do compilador
 
+
+
+# Leitura dos arquivos para análise
 def identificaArquivo():
   arquivos = []
   for arquivo in os.listdir("."):
@@ -322,7 +281,8 @@ def identificaArquivo():
       arquivos.append(arquivo)
   return arquivos
 
-
+# Verifica se existem arquivos para análise
+# ou se foram informados na chamada do programa
 if sys.argv[1:]:
   arquivos = sys.argv[1:]
 else:
@@ -330,6 +290,8 @@ else:
   print(arquivos)
   wait = input("Press Enter to continue.")
 
+
+# Inicializando o programa
 if __name__ == '__main__':
   lexer = BasicLexer()
   parser = BasicParser()
@@ -338,9 +300,6 @@ if __name__ == '__main__':
   while True:
     opcao = input('prog_made_by_dummies ([0] read_file / [1] input_text) > ')
     if opcao == '0':
-      #try:
-      # Verifica se existem arquivos para análise
-      # ou se foram informados na chamada do programa
       x = 0
       for arquivo in arquivos:
         arq = open(arquivo, 'r')
@@ -353,12 +312,12 @@ if __name__ == '__main__':
           x += 1
           text = linha.strip()
           print("L{}: {}".format(x, text))
-          #text = input('prog_made_by_dummies > ')
-          #except EOFError:
-          # break
           if text:
             try:
               tree = parser.parse(lexer.tokenize(text))
+              if tree == None:
+                print("L{}: Erro identificado".format(x))
+                print(erro)
             except:
               pass
             for token in lexer.tokenize(text):
@@ -371,6 +330,9 @@ if __name__ == '__main__':
         break
       if text:
         tree = parser.parse(lexer.tokenize(text))
-        for token in lexer.tokenize(text):
-          print(token)
-        print(tree)
+        if tree == None:
+          print(erro)
+        else:
+          for token in lexer.tokenize(text):
+            print(token)
+          print(tree)
