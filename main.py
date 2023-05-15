@@ -35,6 +35,7 @@ from sly import Parser
 import os
 import sys
 
+
 class BasicLexer(Lexer):
   tokens = {
     NAME, TYPE_INT, TYPE_REAL, TYPE_STRING, INT, REAL, STRING, IF, THEN, ELSE,
@@ -42,8 +43,8 @@ class BasicLexer(Lexer):
     PIN_MODE, PIN_TYPE, DO, WHILE, EQEQ, BOOL, BIGGER_OR_EQUAL,
     SMALLER_OR_EQUAL, BIGGER, SMALLER, DELAY, LBRACE, RBRACE
   }
-  ignore = '\t\b '
-  literals = {'=', '+', '-', '/', '*', '(', ')', '{', '}', ',', ';'}
+  ignore = '\t\b\n '
+  literals = {'=', '+', '-', '/', '*', '(', ')', '{', '}', '}', ',', ';'}
 
   # Define tokens
   IF = r'IF'
@@ -56,11 +57,11 @@ class BasicLexer(Lexer):
   ANALOG_WRITE = r'ANALOG_WRITE'
   DELAY = r'DELAY'
   PIN_MODE = r'PIN_MODE'
-  DO = r'DO'
   WHILE = r'WHILE'
-  END = r'END'
+  DO = r'DO'
   LBRACE = r'{'
   RBRACE = r'}'
+  END = r'END'
   TO = r'TO'
   TYPE_INT = r'TYPE_INT'
   TYPE_REAL = r'TYPE_REAL'
@@ -113,34 +114,35 @@ class BasicParser(Parser):
   def statement(self, p):
     pass
 
-  @_('FOR var_assign TO expr THEN statement')
+  @_('FOR "(" var_assign ")" TO "(" expr ")" THEN "{" statement "}" END')
   def statement(self, p):
-    return ('for_loop', ('for_loop_setup', p.var_assign, p.expr), p.statement)
+    wait = input("Pressione enter para continuar...")
+    return ('for_loop', ('for_loop_setup', p.var_assign, p.expr), p.statement0)
 
-  @_('IF condition THEN statement END')
+  @_('IF "(" condition ")" THEN "{" statement "}" END')
   def statement(self, p):
     return ('if_stmt', p.condition, ('branch', p.statement))
 
-  @_('IF condition THEN statement ELSE statement END')
+  @_('IF "(" condition ")" THEN "{" statement "}" ELSE "{" statement "}" END')
   def statement(self, p):
     return ('if_stmt_else', p.condition, ('branch', p.statement0,
                                           p.statement1))
-
-  @_('DO "{" statement "}" WHILE "(" condition ")" END')
-  def statement(self, p):
-    return ('do_while', p.DO, p.statement, ('branch', p.condition))
 
   @_('WHILE "(" condition ")" LBRACE')
   def statement(self, p):
     return ('open_while', p.WHILE, p.condition)
 
-  @_('WHILE "(" condition ")" "{" statement "}" END')
+  @_('WHILE "(" condition ")" statement END')
   def statement(self, p):
     return ('while', p.WHILE, ('branch', p.condition, p.statement))
 
   @_('RBRACE END')
   def statement(self, p):
     return ('close_statement', p.END)
+
+  @_('DO "{" statement "}" WHILE "(" condition ")" END')
+  def statement(self, p):
+    return ('do_while', p.DO, ('branch', p.WHILE, p.condition), p.statement)
 
   @_('DIGITAL_READ "(" expr ")"')
   def statement(self, p):
@@ -254,7 +256,10 @@ class BasicParser(Parser):
   def expr(self, p):
     return ('num', float(p.REAL))
 
+
 erro = ""
+
+
 # Classe para capturar os erros léxicos e sintáticos do compilador
 class LogErro():
   STDERR = ''
@@ -265,12 +270,24 @@ class LogErro():
       #print('Intercepted: ' + repr(args))
       global erro
       erro = 'Erro identificado: ' + repr(args)
+
     return new
 
   sys.stderr.write = new_stderr(sys.stderr.write)
 
-# Apresentação inicial com instruções de uso do compilador
 
+# Apresentação inicial com instruções de uso do compilador
+print("PROG MADE BY DUMMIES - 2023")
+print("GITHUB: /thewillboy/compilador")
+print("\n\n")
+print("Para utilizar este compilador:")
+print("1 - Crie um arquivo com seu código no mesmo diretório do compilador")
+print("2 - Indique um arquivo como parâmetro na execução do compilador")
+print(
+  "3 - Selecione a opção default (qualquer tecla) do menu para testar o código no compilador"
+)
+print("\n\n")
+wait = input("Pressione enter para continuar...")
 
 
 # Leitura dos arquivos para análise
@@ -281,15 +298,13 @@ def identificaArquivo():
       arquivos.append(arquivo)
   return arquivos
 
+
 # Verifica se existem arquivos para análise
 # ou se foram informados na chamada do programa
 if sys.argv[1:]:
   arquivos = sys.argv[1:]
 else:
   arquivos = identificaArquivo()
-  print(arquivos)
-  wait = input("Press Enter to continue.")
-
 
 # Inicializando o programa
 if __name__ == '__main__':
@@ -298,16 +313,17 @@ if __name__ == '__main__':
   LogErro()
   env = {}
   while True:
-    opcao = input('prog_made_by_dummies ([0] read_file / [1] input_text) > ')
+    opcao = input(
+      '\n\nprog_made_by_dummies ([0] read_file/arg_file / [default] input_text) > '
+    )
     if opcao == '0':
       x = 0
       for arquivo in arquivos:
         arq = open(arquivo, 'r')
-        print(arq)
-        wait = input("Press Enter to continue.")
+        print("\n####### Analisando o arquivo:", arquivo)
+        print("\n")
+        wait = input("Pressione enter para continuar...\n")
         linhas = arq.readlines()
-        print(linhas[0].strip())
-        wait = input("Press Enter to continue.")
         for linha in linhas:
           x += 1
           text = linha.strip()
@@ -322,17 +338,18 @@ if __name__ == '__main__':
               pass
             for token in lexer.tokenize(text):
               print(token)
-            print(tree)
+            if tree != None:
+              print("Tree" + str(tree))
     else:
       try:
         text = input('prog_made_by_dummies > ')
       except EOFError:
         break
       if text:
-        tree = parser.parse(lexer.tokenize(text))
+        tree = parser.parse(lexer.tokenize(text.strip()))
         if tree == None:
           print(erro)
         else:
-          for token in lexer.tokenize(text):
+          for token in lexer.tokenize(text.strip()):
             print(token)
-          print(tree)
+          print("Tree" + str(tree))
