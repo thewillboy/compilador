@@ -44,9 +44,9 @@ DELAY:
 
     ;NOP
 
-    ; Chamar outro delay (laço dentro do laço para criar tempo)
+    ; Chamar outro delay (laÃ§o dentro do laÃ§o para criar tempo)
     ; Loop
-    LDI R17, 250 ; Quantidade de execuções do loop de delay
+    LDI R17, 250 ; Quantidade de execuÃ§Ãµes do loop de delay
     RCALL DELAY2
 
     DEC R16
@@ -103,9 +103,9 @@ DELAY_255_PLUS:
     NOP
     NOP
 
-    ; Chamar outro delay (laço dentro do laço para criar tempo)
+    ; Chamar outro delay (laÃ§o dentro do laÃ§o para criar tempo)
     ; Loop
-    LDI R17, 255 ; Quantidade de execuções do loop de delay
+    LDI R17, 255 ; Quantidade de execuÃ§Ãµes do loop de delay
     RCALL DELAY2
 
     CPI R18,0
